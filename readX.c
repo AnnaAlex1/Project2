@@ -221,22 +221,22 @@ void set_spec(struct Spec *spec, FILE *spec_file, char* dir_name, char* file_nam
           
           while(  ( (ch = fgetc(spec_file)) != EOF) &&  (( ch != ',')  ||  prev_ch != ']')){
             
-            //don't allow entrance in if(endof...)statement, if previous character == '\', or a number is followed by fullstop
-            if ( ((prev_ch == help) && (ch != 'n' && ch != 'u' ) )|| (prev_ch >= 48 && prev_ch <= 57 && (ch == '.' || ch == ':'))){      
-              help_flag = true;                      
-            } else if ( (prev_ch == help) && (ch == 'n') ){
-              changeword = true; //we found change of line
-            } else if ( (prev_ch == help) &&  (ch == 'u') ){   //skip next for characters
-              changeword = true; //we found '\u'
-              count_chars = 0;      //start counting
-            }
+            //checking characters and setting the needed flags
+            set_flags(prev_ch, ch, &help_flag, &changeword);
+
 
             
-
+            //for setting the struct Spec
             prev_ch = ch;
-            
             second_part[i] = ch;
             i++;
+
+                        
+
+            //case: '\u' found
+            if (ch == 'u' && changeword){   
+              count_chars = 0;      //start counting
+            }
 
             if (count_chars == 5){  //no more unicode characters (stop skipping characters)
               count_chars = -1;       //finished counting for now
@@ -245,25 +245,13 @@ void set_spec(struct Spec *spec, FILE *spec_file, char* dir_name, char* file_nam
               continue;
             } 
 
-            
-
-            /*if ( ch == help ){ //if character is '\' 
-              
-              temp = fgetc(spec_file);
-              ungetc(temp, spec_file); printf("Temp: %c\n", temp); //check next character
-              
-              if ( temp != 'n'){  //if nect character is not 'n' then continue to next interation
-                temp = '0';
-                continue;
-              } //if we found a '\n' then temp = 'n'
-
-            }*/
-
-            if ( ch == help ){   //if character is '\' then continue to next interation
+            //case: character '\' found
+            if ( ch == help ){   //continue to next interation
               continue;                    
             }
 
-            
+
+            //extract word for list of words
             if ( endofword(ch, help_flag) || changeword){     //if it's the end of word
               word[j] = '\0';
               if ( (strcmp(word, " ") != 0) && (strlen(word)!= 0) ){
@@ -279,87 +267,7 @@ void set_spec(struct Spec *spec, FILE *spec_file, char* dir_name, char* file_nam
 
             help_flag = false;
 
-            if ( !( (j == 0) && endofword(ch, help_flag)) && !changeword && count_chars == -1){    //if the first character is not a symbol
-              word[j] = ch;
-              j++;
-            } 
-            
-            changeword = false;            
-            
-          }
-
-        word[j] = '\0';
-        if (strlen(word) != 0){
-          printf("      word1end: %s\n", word); //for the last one????????
-         //PROCEDURE!!!
-        }
-        
-
-
-      } else if (ch == '"'){
-
-          ch = prev_ch;                       //change value '"' in order to enter the loop 
-          while(  ( (ch = fgetc(spec_file)) != EOF) && ( (ch != '"') || ( (ch == '"') && (prev_ch == help) ) )  ){ 
-            
-
-            //don't allow entrance in if(endof...)statement, if previous character == '\', or a number is followed by fullstop
-            if ( ((prev_ch == help) && (ch != 'n' && ch != 'u' ) )|| (prev_ch >= 48 && prev_ch <= 57 && (ch == '.' || ch == ':'))){      
-              help_flag = true;                      
-            } else if ( (prev_ch == help) && (ch == 'n') ){
-              changeword = true; //we found change of line
-            } else if ( (prev_ch == help) &&  (ch == 'u') ){   //skip next for characters
-              changeword = true; //we found '\u'
-              count_chars = 0;      //start counting
-            }
-
-            
-
-            prev_ch = ch;
-            
-            second_part[i] = ch;
-            i++;
-
-            if (count_chars == 5){  //no more unicode characters (stop skipping characters)
-              count_chars = -1;       //finished counting for now
-            } else if (count_chars != -1){  //case \u
-              count_chars++;
-              continue;
-            } 
-
-            
-
-            /*if ( ch == help ){ //if character is '\' 
-              
-              temp = fgetc(spec_file);
-              ungetc(temp, spec_file); printf("Temp: %c\n", temp); //check next character
-              
-              if ( temp != 'n'){  //if nect character is not 'n' then continue to next interation
-                temp = '0';
-                continue;
-              } //if we found a '\n' then temp = 'n'
-
-            }*/
-
-            if ( ch == help ){   //if character is '\' then continue to next interation
-              continue;                    
-            }
-
-            
-            if ( endofword(ch, help_flag) || changeword){     //if it's the end of word
-              word[j] = '\0';
-              if ( (strcmp(word, " ") != 0) && (strlen(word)!= 0) ){
-                printf("      word2: %s\n", word); 
-                //PROCEDURE!!!!!!!!!
-                j=0;
-                changeword = false;
-                continue;
-
-              }
-
-            }
-
-            help_flag = false;
-
+            //put character in word
             if ( !( (j == 0) && endofword(ch, help_flag)) && !changeword && count_chars == -1){    //if the first character is not a symbol
               word[j] = ch;
               j++;
@@ -368,10 +276,80 @@ void set_spec(struct Spec *spec, FILE *spec_file, char* dir_name, char* file_nam
             changeword = false;       
           }
 
-        word[j] =   '\0';
-        if (strlen(word) != 0){
-          printf("      word2end: %s\n", word); //for the last one????????
-         //PROCEDURE!!!
+          //case: last word of string (last word of details)
+          word[j] =   '\0';
+          if (strlen(word) != 0){
+            printf("      word2end: %s\n", word);
+            //PROCEDURE!!!
+          }
+        
+
+
+      } else if (ch == '"'){
+
+          ch = prev_ch;                       //change value '"' in order to enter the loop 
+          while(  ( (ch = fgetc(spec_file)) != EOF) && ( (ch != '"') || ( (ch == '"') && (prev_ch == help) ) )  ){ 
+            
+            //checking characters and setting the needed flags
+            set_flags(prev_ch, ch, &help_flag, &changeword);
+
+
+            
+            //for setting the struct Spec
+            prev_ch = ch;
+            second_part[i] = ch;
+            i++;
+
+                        
+
+            //case: '\u' found
+            if (ch == 'u' && changeword){   
+              count_chars = 0;      //start counting
+            }
+
+            if (count_chars == 5){  //no more unicode characters (stop skipping characters)
+              count_chars = -1;       //finished counting for now
+            } else if (count_chars != -1){  //case \u
+              count_chars++;
+              continue;
+            } 
+
+            //case: character '\' found
+            if ( ch == help ){   //continue to next interation
+              continue;                    
+            }
+
+
+            //extract word for list of words
+            if ( endofword(ch, help_flag) || changeword){     //if it's the end of word
+              word[j] = '\0';
+              if ( (strcmp(word, " ") != 0) && (strlen(word)!= 0) ){
+                printf("      word2: %s\n", word); 
+                //PROCEDURE!!!!!!!!!
+                j=0;
+                changeword = false;
+                continue;
+
+              }
+
+            }
+
+            help_flag = false;
+
+            //put character in word
+            if ( !( (j == 0) && endofword(ch, help_flag)) && !changeword && count_chars == -1){    //if the first character is not a symbol
+              word[j] = ch;
+              j++;
+            } 
+            
+            changeword = false;       
+          }
+
+          //case: last word of string (last word of details)
+          word[j] =   '\0';
+          if (strlen(word) != 0){
+            printf("      word2end: %s\n", word);
+            //PROCEDURE!!!
         }
 
       }
@@ -486,6 +464,28 @@ int endofword(char current, bool flag){
 
 }
 
+
+
+void set_flags(char prev_ch, char ch, bool* help_flag, bool* changeword){ //setting helping flags 
+
+  char help = '\\';
+
+  //don't allow entrance in if(endof...)statement, if previous character == '\', or a number is followed by fullstop
+  if ( ((prev_ch == help) && (ch != 'n' && ch != 'u' ) )|| 
+        (prev_ch >= 48 && prev_ch <= 57 && (ch == '.' || ch == ':'))    ){      
+      
+      *help_flag = true;                      
+  
+  } else if ( (prev_ch == help) && (ch == 'n') ){
+     
+      *changeword = true; //we found change of line
+  } else if ( (prev_ch == help) &&  (ch == 'u') ){   //skip next for characters
+    
+      *changeword = true; //we found '\u'
+
+  }
+
+}
 
 
 

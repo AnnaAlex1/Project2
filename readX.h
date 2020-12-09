@@ -29,5 +29,6 @@ char *extract_id(char * dir_name, char *file_name);
 int read_datasetX(int HashtableNumOfEntries, struct Entry* HashTable, int bucketSize);
 void free_spec(struct Spec *spec);
 int endofword(char current, bool flag);
+void set_flags(char prev_ch, char ch, bool* help_flag, bool* changeword);
 
 #endif

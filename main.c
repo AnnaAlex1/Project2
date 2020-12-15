@@ -5,14 +5,27 @@
 
 #include <stdlib.h>
 #include <errno.h>
+#include "readX.h"
+#include "hashTable.h"
+#include "result.h"
+#include "readW.h"
 
-#define NUM_OF_ENTRIES 20
-#define BUCKET_SIZE 100
+#include <stdlib.h>
+#include <errno.h>
+
+#define NUM_OF_ENTRIES 300
+#define BUCKET_SIZE 1000
 
 struct AccessCliques* aclist = NULL;         //a list holding the start of each clique
-struct WordList* vocabulary = NULL;
+//global variable for vocabulary?
+
+int num_of_specs;
+
 
 int main(int argc, char** argv){
+
+  struct Tfidf *tfidf = NULL;
+  double *tfidf_column_sum;
 
   struct Entry* hashTable;
   hashTable = malloc( sizeof(struct Entry) * NUM_OF_ENTRIES);
@@ -38,7 +51,7 @@ int main(int argc, char** argv){
   char right_spec_id[50];
   int wstatus;
 
-  while ((wstatus=readDatasetW(datasetw,left_spec_id,right_spec_id))!=EOF)
+  while ((wstatus=readDatasetW_1(datasetw,left_spec_id,right_spec_id))!=EOF)
   {
 
       if (wstatus==ENOENT) return wstatus;
@@ -70,3 +83,4 @@ int main(int argc, char** argv){
   return 0;
 
 }
+

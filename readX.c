@@ -7,12 +7,12 @@
 
 #include "readX.h"
 #include "hashTable.h"
-#include "words.h"
 
 
 #define MAXBUF 51000
 
-extern struct WordList* vocabulary;
+
+extern int num_of_specs;
 
 int read_datasetX(int HashtableNumOfEntries, struct Entry* HashTable, int bucketSize){
 
@@ -75,7 +75,9 @@ int read_datasetX(int HashtableNumOfEntries, struct Entry* HashTable, int bucket
 
                                                                             
                     set_spec(spec, spec_file, dsub_dir->d_name, dfiles->d_name); //passing file pointer, name of directory, file name
-                    print_spec(*spec);
+                    //print_spec(*spec);
+
+                    num_of_specs++;
 
                     //give spec to create nodes
                     insertInHashTable( spec, HashtableNumOfEntries, HashTable, bucketSize);
@@ -123,8 +125,10 @@ void set_spec(struct Spec *spec, FILE *spec_file, char* dir_name, char* file_nam
   spec->num_of_fields = 0;
   spec->fields.category = NULL;
   spec->fields.details = NULL;
+  spec->tfidf = NULL;
+  spec->num_of_words = 0;
 
-  printf("SPECID: %s\n", spec->spec_id);
+  //printf("SPECID: %s\n", spec->spec_id);
   
   
   //////////
@@ -139,7 +143,6 @@ void set_spec(struct Spec *spec, FILE *spec_file, char* dir_name, char* file_nam
   char prev_ch, ch;
   char help = '\\';
   bool help_flag = false; //becomes true when 'we want to keep a character we normally wouldn't 
-  //char temp = '0';  //helping character for handling '\n' in text
   bool changeword = false; //helping flag for handling '\n' in text
   int count_chars = -1; //to count characters (if -1 don't start counting)
   
@@ -171,8 +174,10 @@ void set_spec(struct Spec *spec, FILE *spec_file, char* dir_name, char* file_nam
           if ( endofword(ch, help_flag) ){     /*end of word*/ 
             word[j] = '\0';
             if ( (strcmp(word, " ") != 0) && (strlen(word)!= 0) ){
-              printf("word: %s\n", word);
+              //printf("word: %s\n", word);
               //PROCEDURE!!!
+              //if not a stop word!!!!!!!
+                  spec->num_of_words++;
               j=0;
               continue;
             }
@@ -190,7 +195,7 @@ void set_spec(struct Spec *spec, FILE *spec_file, char* dir_name, char* file_nam
 
       word[j] =   '\0';
       if (strlen(word) != 0){
-        printf("wordend: %s\n", word);
+        //printf("wordend: %s\n", word);
         //PROCEDURE!!!
       }
       first_part[i] = '\0';
@@ -255,7 +260,9 @@ void set_spec(struct Spec *spec, FILE *spec_file, char* dir_name, char* file_nam
             if ( endofword(ch, help_flag) || changeword){     //if it's the end of word
               word[j] = '\0';
               if ( (strcmp(word, " ") != 0) && (strlen(word)!= 0) ){
-                printf("      word2: %s\n", word); 
+                //printf("      word2: %s\n", word); 
+                //if not a stop word!!!!!!!
+                    spec->num_of_words++;
                 //PROCEDURE!!!!!!!!!
                 j=0;
                 changeword = false;
@@ -279,7 +286,9 @@ void set_spec(struct Spec *spec, FILE *spec_file, char* dir_name, char* file_nam
           //case: last word of string (last word of details)
           word[j] =   '\0';
           if (strlen(word) != 0){
-            printf("      word2end: %s\n", word);
+            //printf("      word2end: %s\n", word);
+            //if not a stop word!!!!!!!
+                  spec->num_of_words++;
             //PROCEDURE!!!
           }
         
@@ -324,7 +333,9 @@ void set_spec(struct Spec *spec, FILE *spec_file, char* dir_name, char* file_nam
             if ( endofword(ch, help_flag) || changeword){     //if it's the end of word
               word[j] = '\0';
               if ( (strcmp(word, " ") != 0) && (strlen(word)!= 0) ){
-                printf("      word2: %s\n", word); 
+                //printf("      word2: %s\n", word); 
+                //if not a stop word!!!!!!!
+                    spec->num_of_words++;
                 //PROCEDURE!!!!!!!!!
                 j=0;
                 changeword = false;
@@ -348,7 +359,9 @@ void set_spec(struct Spec *spec, FILE *spec_file, char* dir_name, char* file_nam
           //case: last word of string (last word of details)
           word[j] =   '\0';
           if (strlen(word) != 0){
-            printf("      word2end: %s\n", word);
+            //printf("      word2end: %s\n", word);
+            //if not a stop word!!!!!!!
+                  spec->num_of_words++;
             //PROCEDURE!!!
         }
 
@@ -486,6 +499,53 @@ void set_flags(char prev_ch, char ch, bool* help_flag, bool* changeword){ //sett
   }
 
 }
+
+
+void add_string_beg(struct WordList** list, char* word ){
+
+    struct WordList *new;
+    new = malloc(sizeof(struct WordList));
+    new->word = malloc(sizeof(char) * (strlen(word)+1) );
+    new->next = NULL;
+
+    if(list == NULL){    //list is empty - add first node
+        *list = new;
+    }
+    else{   //add node at the beginning of the list
+        new->next = *list;
+        *list = new;
+    }
+
+}
+
+
+
+void add_string_end(struct WordList** list, char* word ){
+
+    struct WordList *new;
+    new = malloc(sizeof(struct WordList));
+    new->word = malloc(sizeof(char) * (strlen(word)+1) );
+    strcpy(new->word, word);
+    new->next = NULL;
+
+    //printf("%s\n", new->word);
+
+    if(*list == NULL){    //list is empty - add first node
+        *list = new;
+        return;
+    }
+
+    struct WordList *temp = *list;
+    while (temp->next!=NULL){
+        temp = temp->next;
+    }
+    
+    temp->next = new;
+    
+    return;
+
+}
+
 
 
 

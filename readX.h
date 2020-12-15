@@ -2,9 +2,17 @@
 #define __READX__
 
 #include "hashTable.h"
-#include "words.h"
+//#include "tfidf.h"
 #include <stdio.h>
 #include <stdbool.h>
+
+
+struct WordList{
+  char *word;
+  struct WordList* next;
+};
+
+
 
 struct Pair {
   struct WordList* category;
@@ -16,9 +24,15 @@ struct Spec {
   char *spec_id;
   int num_of_fields;
   struct Pair fields;
+  int num_of_words;     //number of words found in the spec (without stopwords)
+  //double *tfidf;
+  struct Tfidf *tfidf;
+  int *bow;
+  int tf_size;
+
   //struct Pair* words;
   //struct WordList* words;
-  //int *vector;
+  //char *vector;
 };
 
 
@@ -30,5 +44,12 @@ int read_datasetX(int HashtableNumOfEntries, struct Entry* HashTable, int bucket
 void free_spec(struct Spec *spec);
 int endofword(char current, bool flag);
 void set_flags(char prev_ch, char ch, bool* help_flag, bool* changeword);
+
+
+void add_string_beg(struct WordList**, char*);
+void add_string_end(struct WordList**, char*);
+//when it adds in vocabulary, then it returns the position so vector knows where to be 1
+
+
 
 #endif

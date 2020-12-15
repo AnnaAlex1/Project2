@@ -1,14 +1,14 @@
 CC=gcc
 CFLAGS=-Wall -g
 
-project1: readX.o readW.o hashTable.o ids_list.o result.o words.o main.o
-	$(CC) $(CFLAGS) -o project1 readX.o readW.o hashTable.o ids_list.o result.o words.o main.o
+project1: readX.o readW.o hashTable.o ids_list.o result.o tfidf.o main.o
+	$(CC) $(CFLAGS) -o project1 readX.o readW.o hashTable.o ids_list.o result.o tfidf.o main.o
 
 test_project1: readX.o readW.o hashTable.o ids_list.o result.o test.o
 	$(CC) $(CFLAGS) -o test_project1 readX.o readW.o hashTable.o ids_list.o result.o test.o
 
-words.o: words.c
-	$(CC) $(CFLAGS) -c words.c 
+tfidf.o: tfidf.c
+	$(CC) $(CFLAGS) -c tfidf.c
 
 test.o: test.c
 	$(CC) $(CFLAGS) -c test.c

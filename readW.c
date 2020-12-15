@@ -5,7 +5,7 @@
 
 #include "readW.h"
 
-int readDatasetW (FILE* datasetW, char* left, char* right)
+int readDatasetW_1 (FILE* datasetW, char* left, char* right)
 {
     int label = 0;
     char c = 0;
@@ -29,6 +29,36 @@ int readDatasetW (FILE* datasetW, char* left, char* right)
         label = atoi(strtok(NULL,","));
 
         if (label == 1) break;  // return this pair of specs
+                                // else ignore unmatching pairs labeled by 0
+    }
+
+    return c;
+}
+
+int readDatasetW_0 (FILE* datasetW, char* left, char* right)
+{
+    int label = 0;
+    char c = 0;
+    char buffer[BSIZE];
+
+    if (!datasetW)
+    {
+        perror("Opening dataset W failed");
+        return ENOENT;
+    }
+    
+    
+    while ((c=fgetc(datasetW))!=EOF)
+    {
+        ungetc(c,datasetW);
+
+        fgets(buffer,BSIZE,datasetW);
+
+        strcpy(left,strtok(buffer,","));
+        strcpy(right,strtok(NULL,","));
+        label = atoi(strtok(NULL,","));
+
+        if (label == 0) break;  // return this pair of specs
                                 // else ignore unmatching pairs labeled by 0
     }
 

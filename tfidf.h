@@ -1,25 +1,23 @@
 //tfidf.h
 
+
 #ifndef __TFIDF__
 #define __TFIDF__
 
 #include "readX.h"
+#include "BOW.h"
 
 
 
-
-struct Tfidf{
-    double *spec_tfidf;     //one line of the tfidf table (each spec's tfidf)
-    int sizeoftable;
-    struct Tfidf* next_spec;
+struct Rem_struct{
+    int pos;
+    struct Rem_struct* next;
 };
 
 
-void tfidf_add(struct Tfidf **tfidf, double *spec_tf);
-void spec_tf(struct Tfidf **tfidf, struct Spec* spec, double *idf, int vocab_size);     //calculates every tf value of each word
-double *init_idf(int num_of_specs, struct Vocabulary vocabulary, int vocab_size);
 
-void release_tfidf(struct Tfidf **tfidf);
-
+void init_tf(struct Spec* spec, struct VocabEntry *general_voc,int numOfEntries);
+float *init_idf(int num_of_specs, struct VocabEntry* vocabulary,int numOfEntries);
+void calculate_tfidf(struct Spec* spec, float* idf);
 
 #endif

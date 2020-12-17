@@ -262,7 +262,7 @@ void freeHashTable(struct Entry* hashTable,int numOfEntries,int bucketSize){
 }
 
 
-/*
+
 void checkHashTable(struct Entry* hashTable,int numOfEntries,int bucketSize){
   struct Bucket* currentBucket;
   int numOfBucket;
@@ -277,4 +277,8 @@ void checkHashTable(struct Entry* hashTable,int numOfEntries,int bucketSize){
       numOfBucket++;
     }
   }
-}*/
+}
+
+
+
+

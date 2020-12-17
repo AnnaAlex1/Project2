@@ -7,14 +7,17 @@
 
 #include "readX.h"
 #include "hashTable.h"
+#include "words.h"
+#include "BOW.h"
+#include "tfidf.h"
 
 
 #define MAXBUF 51000
 
-
 extern int num_of_specs;
 
-int read_datasetX(int HashtableNumOfEntries, struct Entry* HashTable, int bucketSize){
+int read_datasetX(int HashtableNumOfEntries, struct Entry* HashTable, int bucketSize, 
+                  struct VocabEntry* vocabulary, FILE* stop_file){
 
   FILE *spec_file;
   
@@ -74,7 +77,7 @@ int read_datasetX(int HashtableNumOfEntries, struct Entry* HashTable, int bucket
                     }
 
                                                                             
-                    set_spec(spec, spec_file, dsub_dir->d_name, dfiles->d_name); //passing file pointer, name of directory, file name
+                    set_spec(spec, spec_file, dsub_dir->d_name, dfiles->d_name, vocabulary, stop_file); //passing file pointer, name of directory, file name
                     //print_spec(*spec);
 
                     num_of_specs++;
@@ -119,7 +122,8 @@ int read_datasetX(int HashtableNumOfEntries, struct Entry* HashTable, int bucket
 
 
 
-void set_spec(struct Spec *spec, FILE *spec_file, char* dir_name, char* file_name){            //returns a struct of spec from the file given
+void set_spec(struct Spec *spec, FILE *spec_file, char* dir_name, char* file_name, 
+                struct VocabEntry* vocabulary, FILE* stop_file){     //returns a struct of spec from the file given
   
   spec->spec_id = extract_id( dir_name, file_name );
   spec->num_of_fields = 0;
@@ -137,7 +141,6 @@ void set_spec(struct Spec *spec, FILE *spec_file, char* dir_name, char* file_nam
   char second_part[MAXBUF];
   char word[30];
  
-  
   
   int i,j;
   char prev_ch, ch;
@@ -173,11 +176,10 @@ void set_spec(struct Spec *spec, FILE *spec_file, char* dir_name, char* file_nam
 
           if ( endofword(ch, help_flag) ){     /*end of word*/ 
             word[j] = '\0';
+            
             if ( (strcmp(word, " ") != 0) && (strlen(word)!= 0) ){
-              //printf("word: %s\n", word);
-              //PROCEDURE!!!
-              //if not a stop word!!!!!!!
-                  spec->num_of_words++;
+
+              procedure(spec, word, vocabulary, stop_file);
               j=0;
               continue;
             }
@@ -196,7 +198,7 @@ void set_spec(struct Spec *spec, FILE *spec_file, char* dir_name, char* file_nam
       word[j] =   '\0';
       if (strlen(word) != 0){
         //printf("wordend: %s\n", word);
-        //PROCEDURE!!!
+        procedure(spec, word, vocabulary, stop_file);
       }
       first_part[i] = '\0';
       
@@ -261,9 +263,8 @@ void set_spec(struct Spec *spec, FILE *spec_file, char* dir_name, char* file_nam
               word[j] = '\0';
               if ( (strcmp(word, " ") != 0) && (strlen(word)!= 0) ){
                 //printf("      word2: %s\n", word); 
-                //if not a stop word!!!!!!!
-                    spec->num_of_words++;
-                //PROCEDURE!!!!!!!!!
+                
+                procedure(spec, word, vocabulary, stop_file);
                 j=0;
                 changeword = false;
                 continue;
@@ -287,9 +288,8 @@ void set_spec(struct Spec *spec, FILE *spec_file, char* dir_name, char* file_nam
           word[j] =   '\0';
           if (strlen(word) != 0){
             //printf("      word2end: %s\n", word);
-            //if not a stop word!!!!!!!
-                  spec->num_of_words++;
-            //PROCEDURE!!!
+            
+            procedure(spec, word, vocabulary, stop_file);
           }
         
 
@@ -334,9 +334,8 @@ void set_spec(struct Spec *spec, FILE *spec_file, char* dir_name, char* file_nam
               word[j] = '\0';
               if ( (strcmp(word, " ") != 0) && (strlen(word)!= 0) ){
                 //printf("      word2: %s\n", word); 
-                //if not a stop word!!!!!!!
-                    spec->num_of_words++;
-                //PROCEDURE!!!!!!!!!
+
+                procedure(spec, word, vocabulary, stop_file);
                 j=0;
                 changeword = false;
                 continue;
@@ -360,9 +359,8 @@ void set_spec(struct Spec *spec, FILE *spec_file, char* dir_name, char* file_nam
           word[j] =   '\0';
           if (strlen(word) != 0){
             //printf("      word2end: %s\n", word);
-            //if not a stop word!!!!!!!
-                  spec->num_of_words++;
-            //PROCEDURE!!!
+            
+            procedure(spec, word, vocabulary, stop_file);
         }
 
       }
@@ -377,6 +375,8 @@ void set_spec(struct Spec *spec, FILE *spec_file, char* dir_name, char* file_nam
       
     
   }
+  
+  init_tf(spec, vocabulary, VOC_ENTRIES);
   
   free(line);
 
@@ -548,21 +548,46 @@ void add_string_end(struct WordList** list, char* word ){
 
 
 
+void procedure(struct Spec* spec, char* word, struct VocabEntry* vocabulary,FILE* stop_file){
+
+  int res, in_local;
+
+  lower(word);    //remove capitals
+
+  res=isStopword(word, stop_file);  //check if it is a stopword
+
+  if ( res == ERROR ){
+      return;
+  } else if ( res == FALSE){    //if it's not a stopword
+
+    spec->num_of_words++;   //increase number of words in spec
+
+    in_local = addWordInVocabulary(word, VOC_ENTRIES, spec->local_vocab, VOC_BUCK_SIZE);  //add word in local vocabulary, while also checking if it's already in
+
+    if ( in_local == -1 ){ //wasn't found in this spec before
+      
+      addWordInVocabulary(word, VOC_ENTRIES, vocabulary, VOC_BUCK_SIZE);//try to add in voacbulary only if its not already in local vocabulary
+
+    } 
+    
+    
+    
+  }
+
+
+}
+
+
+
+
+
+
 
 //PROCEDURE:
 
 //if it's punctuation, continue;
 
-//change capitals to lower case                                       void lower();
-//if not a stopword - maybe                                             bool stopword();
-//call functions for vocabulary and private list                    addword_beg(vocabulary);    addword_beg(private list);
-//++ in vector,increase frequency or if not already in, add it             wordinvector();
+//change capitals to lower case   
+//if not a stopword     
+//call functions for vocabulary and private list 
 
-
-
-//if it's not stopword
-//change capital letters
-//if it's not in private list of words
-//add in private list of words
-//if not already in vocabulary
-//add in voacbulary

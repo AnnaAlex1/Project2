@@ -9,7 +9,7 @@
 #include "readW.h"
 
 
-struct FirstId* first_ids_list = NULL;
+struct AccessCliques* first_ids_list = NULL;
 #define NUM_OF_ENTRIES 20
 #define BUCKET_SIZE 100
 
@@ -17,19 +17,19 @@ struct FirstId* first_ids_list = NULL;
 
 
 void test_addinlist2(void){          //checking if it adds the new_nodes in the list
-    struct FirstId* list = NULL;
-    struct ListId* new_node, *new_node2;
+    struct AccessCliques* list = NULL;
+    struct Clique* new_node, *new_node2;
 
-    new_node = malloc(sizeof(struct ListId));
+    new_node = malloc(sizeof(struct Clique));
     new_node->id = NULL;
-    new_node2 = malloc(sizeof(struct ListId));
+    new_node2 = malloc(sizeof(struct Clique));
     new_node2->id = NULL;
 
     addIdInList2(new_node, &list);
-    TEST_ASSERT( list->first_id == new_node );
+    TEST_ASSERT( list->clique == new_node );
 
     addIdInList2(new_node2, &list);             //check if it takes the place in the beginning of the list
-    TEST_ASSERT( list->first_id == new_node2 );
+    TEST_ASSERT( list->clique == new_node2 );
 
     
     free(new_node);
@@ -41,37 +41,37 @@ void test_addinlist2(void){          //checking if it adds the new_nodes in the 
 
 
 void test_addinlist(void){
-    struct ListId *list1, *list2, *list2temp, *list1temp;
+    struct Clique *list1, *list2, *list2temp, *list1temp;
 
-    list1=malloc(sizeof(struct ListId));
-    list2=malloc(sizeof(struct ListId));
+    list1=malloc(sizeof(struct Clique));
+    list2=malloc(sizeof(struct Clique));
 
     list1temp = list1;
     list2temp = list2;
 
     for (int i=0; i <= 3; i++){
 
-        list1->next_list_id = malloc(sizeof(struct ListId));
-        list1 = list1->next_list_id;
+        list1->next_element = malloc(sizeof(struct Clique));
+        list1 = list1->next_element;
 
-        list2->next_list_id = malloc(sizeof(struct ListId));
-        list2 = list2->next_list_id;
+        list2->next_element = malloc(sizeof(struct Clique));
+        list2 = list2->next_element;
 
     }
 
     addIdInList( list2temp, list1temp);
-    TEST_ASSERT( list1->next_list_id == list2temp );
+    TEST_ASSERT( list1->next_element == list2temp );
 
     //free
     list1 = list1temp;
     list2 = list2temp;
 
     for (int i=0; i <= 3; i++){
-        list1 = list1temp->next_list_id;
+        list1 = list1temp->next_element;
         free(list1temp);
         list1temp = list1;
 
-        list2 = list2temp->next_list_id;
+        list2 = list2temp->next_element;
         free(list2temp);
         list2temp = list2;
     }
@@ -213,11 +213,11 @@ void test_extract_id(void){
 
 
 void test_deleteIdFromList2(void){
-    struct FirstId* firstslist = NULL;
-    struct ListId spec_node1;
-    struct ListId spec_node2;
-    struct ListId spec_node3;
-    struct ListId spec_node4;
+    struct AccessCliques* firstslist = NULL;
+    struct Clique spec_node1;
+    struct Clique spec_node2;
+    struct Clique spec_node3;
+    struct Clique spec_node4;
 
     spec_node1.id = malloc(sizeof(char) * (strlen("www.anna.com//1111")+1 ) );
     spec_node2.id = malloc(sizeof(char) * (strlen("www.maria.com//2222")+1 ) );
@@ -227,7 +227,7 @@ void test_deleteIdFromList2(void){
     strcpy(spec_node1.id, "www.anna.com//1111");
     strcpy(spec_node2.id, "www.maria.com//2222");
     strcpy(spec_node3.id, "www.nelly.com//3333");
-    strcpy(spec_node4.id, "www.project.com//4444");
+    strcpy(spec_node4.id, "www.project.com//4444");                                         //!!!!!!!
 
     addIdInList2( &spec_node1, &firstslist);
     addIdInList2( &spec_node2, &firstslist);
@@ -235,11 +235,11 @@ void test_deleteIdFromList2(void){
     addIdInList2( &spec_node4, &firstslist); //firstslist: spec_node4 -> spec_node3-> spec_node2 -> spec_node1
 
     deleteIdFromList2(&spec_node2, &firstslist);    //delete 2nd node
-    TEST_ASSERT( firstslist->next_id->next_id->first_id ==  &spec_node1); //if now the second node is the spec_node3
+    TEST_ASSERT( firstslist->next_id->next_id->clique ==  &spec_node1); //if now the second node is the spec_node3
                                                                              //firstslist: spec_node4->spec_node3->spec_node1
 
     deleteIdFromList2(&spec_node4, &firstslist);    //delete 1st node
-    TEST_ASSERT( firstslist->first_id ==  &spec_node3);        //if now the first node is spec_node3
+    TEST_ASSERT( firstslist->clique ==  &spec_node3);        //if now the first node is spec_node3
                                                                 //firstslist: spec_node3 -> spec_node1
 
     deleteIdFromList2(&spec_node1, &firstslist);    //delete last node
@@ -304,7 +304,7 @@ void test_set_spec(void){
 
     spec.fields = malloc(sizeof(struct Pair)* 2 );
     spec.fields[0].category = malloc(sizeof(char) * (strlen(category1)+1 ) );
-    strcpy(spec.fields[0].category, category1);
+    strcpy(spec.fields[0].category, category1);                                                     //!!!
 
     spec.fields[1].category = malloc(sizeof(char) * (strlen(category2)+1 ) );
     strcpy(spec.fields[1].category, category2);
@@ -334,7 +334,7 @@ void test_set_spec(void){
 
     TEST_ASSERT( strcmp(spec.spec_id, spec2.spec_id) == 0 );
     TEST_ASSERT( spec.num_of_fields == spec2.num_of_fields );
-    TEST_ASSERT( strcmp( spec.fields[0].category, spec2.fields[0].category ) == 0 );
+    TEST_ASSERT( strcmp( spec.fields[0].category, spec2.fields[0].category ) == 0 );    //!!!
     TEST_ASSERT( strcmp( spec.fields[1].category, spec2.fields[1].category ) == 0 );
     TEST_ASSERT( strcmp( spec.fields[0].details, spec2.fields[0].details ) == 0 );
     TEST_ASSERT( strcmp( spec.fields[1].details, spec2.fields[1].details ) == 0 );

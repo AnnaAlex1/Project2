@@ -2,158 +2,137 @@
 
 #include "tfidf.h"
 #include "readX.h"
+#include "BOW.h"
 
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
 
+extern int totalVocabularyWords;
+extern int finalVectorsSize;
 
-//takes the BOW of the spec and calculates the tf values for every word in the spec
-void spec_tf(struct Tfidf **tfidf, struct Spec* spec, double *idf, int cur_vocab_size, double *tfidf_column_sum){  //create tfidf row for spec
+//1. Calculation of tf value for each spec
+//Calculates the tf values for every word in the spec
+void init_tf(struct Spec* spec, struct VocabEntry *general_voc,int numOfEntries){
 
-    double *spec_tf = malloc( sizeof(double) * cur_vocab_size);     //table of tfidf numbers
+    //allocation of spec's tfidf table and initialization to 0
+    spec->tfidf = calloc(totalVocabularyWords, sizeof(float));
 
+    struct VocabBucket* currentBucket;
 
-    for (int i=0; i<cur_vocab_size; i++){       //for every word in the vocabulary
+    int pos=0;
 
-        if (spec->bow[i] != 0){     //if the word exists in the spec
-            spec_tf[i] = spec->bow[i] / (double)spec->num_of_words;
-            //spec_tf[i] = spec_tf[i] * idf[i];                         //OXI EDW GIATI XREIAZETAI NA EXEI HDH DIAVASEI OLA TA SPEC
-        } else {
-            spec_tf[i] = 0;
-        }
-        
+    //for every word found in the spec
+    for(int i = 0;i < numOfEntries;i++){
+    	currentBucket = spec->local_vocab[i].bucket;
+    	while(currentBucket != NULL){
+      		for(int j = 0;j < currentBucket->isFull;j++){ //for every word
 
-    }
+                //tf value = (freq of word in spec) / (num of words in spec)
 
-    tfidf_add( tfidf, spec_tf, cur_vocab_size);
+                //find general position of word from global vocabulary
+                pos = getWordPosition(general_voc, numOfEntries, VOC_BUCK_SIZE, currentBucket->words[j].word);
+                if (pos == -1){
+                    perror("Word not found in Global Vocabulary!\n");
+                    return;
+                }
 
-}
+                //store tf value in the corresponding position
+                spec->tfidf[pos] = currentBucket->words[j].freq / (float)spec->num_of_words; 
 
-
-
-
-//adds the table of tf values of the spec to the general list of tf values
-void tfidf_add(struct Tfidf **tfidf, double *spec_tf, int cur_vocab_size){          //adding a table of tfidf values of spec to the list
-
-    struct Tfidf *new = malloc( sizeof(struct Tfidf)); 
-    new->spec_tfidf = spec_tf;
-    new->sizeoftable = cur_vocab_size;
-
-
-    if (tfidf == NULL){  //list is empty - add first node
-        *list = new;
-    } else {             //add node at the beginning of the list
-        new->next_spec = *list;
-        *list = new;
-    }
-
-
-}
-
-
-
-
-//creates the idf table, calculates idf value for each word
-double *init_idf(int num_of_specs, struct Vocabulary vocabulary, int vocab_size){
-
-    double *idf = malloc( sizeof(double) * vocab_size);
-
-    
-    for (int i=0; i<vocab_size; i++){
-
-        idf[i] = log( num_of_specs/(double)vocabulary[i].frequency );
-
-
-    }
-
-    return idf;
-
-}
-
-
-
-//calculates final form of tfidf table
-double* calculate_tfidf(struct Tfidf *tfidf, double *idf, int vocab_size){
-                                                //cur_voacb_size == idf size
-   
-    double *column_sum;
-    column_sum = malloc( sizeof(double) * vocab_size);      //maybe calloc
-    for (int i = 0; i < vocab_size; i++){
-        column_sum[i] = 0;
-    }
-    
-
-    int sizeoftable;
-    double *row;
-
-    int i = 0;
-
-    while (tfidf != NULL){  //for each row of the tfidf table
-
-        row = tfidf->spec_tfidf;
-        sizeoftable = tfidf->sizeoftable;
-
-        for (int j=0; j < vocab_size; j++){         //size of the final vocabulary
-
-            if ( j < sizeoftable){          //if there are still values in the tf table of size sizeoftable
-                
-                row[j] = row[j] * idf[j];                   //EXITS TABLE'S MEMORY BOUNDARIES
-                sum[j] = sum[j] + row[j];
-
-            } else {
-                row[j] = 0; 
             }
-
-
-        }
-
-        tfidf = tfidf->next_spec;
-
-    }
-
-
-}
-
-
-
-void words_to_remove(double* sum, int vocab_size){
-
-    for (int i=0; i<vocab_size; i++){
-        if (sum<=0.005){
-            //call funtion for removing
+            currentBucket = currentBucket->nextBucket;
         }
     }
 
-    //maybe sorting and then take first 1000
 
 }
 
 
 
-//releases tfidf table
-void release_tfidf(struct Tfidf **tfidf){
 
-    struct Tfidf *to_free;
 
-    while (tfidf != NULL){
 
-        to_free = *tfidf;
-        free(to_free->spec_tfidf);
-        *tfidf = (*tfidf)->next_id;
-        free(to_free);
+//2. Initialization of idf table
+//creates the idf table, calculates idf value for each word
+float *init_idf(int num_of_specs, struct VocabEntry* vocabulary,int numOfEntries){
+
+    float *idf = malloc( sizeof(float) * totalVocabularyWords);
+
+    struct VocabBucket* currentBucket;
+
+    for(int i = 0;i < numOfEntries;i++){
+    	currentBucket = vocabulary[i].bucket;
+    	while(currentBucket != NULL){
+      		for(int j = 0;j < currentBucket->isFull;j++){
+                //idf value = log( num of specs / num of specs containing the word )
+			    idf[currentBucket->words[j].num] = log((float)num_of_specs/(float)currentBucket->words[j].freq );
+            }
+            currentBucket = currentBucket->nextBucket;
+        }
+    }
+   return idf;
+}
+
+
+
+//3. Calculates final form of tfidf values for each spec (removing words with low idf)
+void calculate_tfidf(struct Spec* spec, float* idf){        //takes the tf table and computes the tfidf value
+
+    float* tf_idf = calloc(finalVectorsSize, sizeof(float));        //final tfidf
+          
+
+    float* to_free = spec->tfidf;
+
+    int i=0, j=0;
+    
+    for (i=0; i<totalVocabularyWords; i++){         //for every idf value in idf table
+
+        if (idf[i]  > 0.005){   //keeping this word
+
+
+            //tf_idf value = tf value * idf value
+            if ( i < spec->tf_size){                //if we did not overpass the size of the spec's tf table
+
+                tf_idf[j] = spec->tfidf[i] * idf[i];
+
+            } //rest: overpassed the size of the spec->tfidf table, meaning no other word in idf was in this spec, remain 0
+
+            j++;
+
+        } 
+
 
     }
 
+    j--;
 
-}
+    if (finalVectorsSize == totalVocabularyWords){  //case: first time, we don't have yet the final size, malloc-ed with total size
+        
+        //clip extra positions
+        tf_idf = realloc(tf_idf, j);    //keep first j positions
+        if (tf_idf == NULL){
+            perror("Request for reallocation failed\n");
+            return;
+        }
+
+    }
+
+   
+
+
+    printf("We kept %d words after clipping idf\n", j);
+    free(to_free);
+    spec->tfidf = tf_idf;
+
+    spec->tf_size = j;
+    finalVectorsSize = j;
+
+
+} 
 
 
 
 
-//eimaste stin tfidf
-//for all tfidf
-    //for every first element of every row (hold them in a table)
-        //sum
-    //average (sum/num_of_specs)
+///////////////////////////////////////////////////////////////
 

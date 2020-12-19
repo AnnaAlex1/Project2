@@ -7,10 +7,13 @@ project1: readX.o readW.o hashTable.o ids_list.o result.o tfidf.o BOW.o words.o 
 test_project1: readX.o readW.o hashTable.o ids_list.o result.o test.o 
 	$(CC) $(CFLAGS) -o test_project1 readX.o readW.o hashTable.o ids_list.o result.o test.o
 	
-test_project2: readX.o readW.o hashTable.o ids_list.o result.o test2.o 
-	$(CC) $(CFLAGS) -o test_project1 readX.o readW.o hashTable.o ids_list.o result.o test2.o	
+test_project2: readX.o readW.o hashTable.o ids_list.o result.o tfidf.o BOW.o words.o bowvector.o test2.o 
+	$(CC) $(CFLAGS) -o test_project2 readX.o readW.o hashTable.o ids_list.o result.o tfidf.o BOW.o words.o bowvector.o test2.o	-lm
 
-bowvector.o: bowvector.o
+test2.o: test2.c
+	$(CC) $(CFLAGS) -c test2.c
+
+bowvector.o: bowvector.c
 	$(CC) $(CFLAGS) -c bowvector.c
 
 words.o: words.c
@@ -23,8 +26,6 @@ BOW.o: BOW.c
 tfidf.o: tfidf.c
 	$(CC) $(CFLAGS) -c tfidf.c
 
-test2.o: test2.c
-	$(CC) $(CFLAGS) -c test2.c
 
 test.o: test.c
 	$(CC) $(CFLAGS) -c test.c

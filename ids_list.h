@@ -1,6 +1,8 @@
 #ifndef __IDSLIST__
 #define __IDSLIST__
 
+#include <stdbool.h>
+
 //node of a list representing a clique of matching specs <--- LIST
 struct Clique{
   char* id; //spec_id
@@ -18,6 +20,7 @@ struct AccessCliques{
 //node of a list containing pointers to cliques that our clique correlates negatively with
 struct NegCorrel{
   struct AccessCliques* aclist; //pointer to the head (AccessCliques node) of the clique
+  bool done;
   struct NegCorrel* next_negcor; //pointer to next node
 };
 
@@ -27,5 +30,6 @@ void deleteIdFromList2(struct Clique* ,struct AccessCliques**); //removes a poin
 void release_Clique(struct AccessCliques* );              //release memory of cliques (LIST)
 void release_aclist(struct AccessCliques**);              //release memory of list of pointers to cliques (LIST2)
 void addNegInList(struct NegCorrel**, struct AccessCliques*);
+int in_neglist(struct NegCorrel* list_neg_cor,struct AccessCliques* head);
 
 #endif

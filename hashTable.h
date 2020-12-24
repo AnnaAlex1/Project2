@@ -31,7 +31,7 @@ void searchSimilar(struct Entry*, int, int, char*, char*);   // search position 
 void searchDifferent(struct Entry* hashTable, int HashtableNumOfEntries, int bucketSize, char* id,char* dest_id);
 void fixing_pointers(struct Clique*, struct AccessCliques*);  // when merging 2 lists: make all pointers of origin list point to destination list
 void freeHashTable(struct Entry* hashTable,int numOfEntries,int bucketSize);
-
+struct Spec* findSpecInHashTable(struct Entry* hashTable, int HashtableNumOfEntries, int bucketSize, char* id);
 
 void checkHashTable(struct Entry* hashTable,int numOfEntries,int bucketSize);
 

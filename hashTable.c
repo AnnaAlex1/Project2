@@ -170,6 +170,9 @@ void searchDifferent(struct Entry* hashTable, int HashtableNumOfEntries, int buc
   struct AccessCliques* dest_head = NULL;
   struct AccessCliques* origin_head = NULL;
   int entryNum; //key
+  
+  static int counter = 0, counter1 = 0;
+  counter++;
 
   //searching for destination's clique
   entryNum = hashFunction(HashtableNumOfEntries, dest_id);
@@ -187,7 +190,6 @@ void searchDifferent(struct Entry* hashTable, int HashtableNumOfEntries, int buc
     currentBucket = currentBucket->nextBucket;
   }
 
-
   if(found_dest == 1){
 
     int entryNum = hashFunction(HashtableNumOfEntries, id);
@@ -204,10 +206,20 @@ void searchDifferent(struct Entry* hashTable, int HashtableNumOfEntries, int buc
           }
           else{
             //printf("\n bucket:%d, pos:%d, spec:%s, origin_head: %s\n\n",entryNum, j, id, origin_head->id );
-
-            addNegInList(&(origin_head->list_neg_cor), dest_head);                     // add dest head to list of negative correlations of origin head
-            addNegInList(&(dest_head->list_neg_cor), origin_head);                     // add origin head to list of negative correlations of dest head
-
+            if ( !in_neglist(origin_head->list_neg_cor, dest_head))                    //check if its already in neg cor list
+            {
+              counter1++;
+              addNegInList(&(origin_head->list_neg_cor), dest_head);                     // add dest head to list of negative correlations of origin head
+              addNegInList(&(dest_head->list_neg_cor), origin_head);                     // add origin head to list of negative correlations of dest head
+              //printf("%s    %s\n", origin_head->clique->id, dest_head->clique->id);
+              
+              //printf("          head1: %s,  head2:  %s\n", origin_head->clique->id, dest_head->clique->id);
+            } else {
+              //if (counter<50) printf("head1: %s,  head2:  %s\n", origin_head->clique->id, dest_head->clique->id);
+            }
+              //if (counter<50) printf("specid1: %s specid2: %s\n\n",origin_head->list_neg_cor->,dest_id);
+              
+              //printf("Counter: %d     Counter1: %d\n", counter, counter1);
             return;
           }
         }
@@ -262,6 +274,27 @@ void freeHashTable(struct Entry* hashTable,int numOfEntries,int bucketSize){
 }
 
 
+struct Spec* findSpecInHashTable(struct Entry* hashTable, int HashtableNumOfEntries, int bucketSize, char* id){
+  struct Bucket* currentBucket;
+  int entryNum; //key
+
+  entryNum = hashFunction(HashtableNumOfEntries, id);
+
+  currentBucket = hashTable[entryNum].bucket;
+  while(currentBucket != NULL){
+    for(int j = 0;j < currentBucket->isFull ;j++){               // search for bucket
+      if( strcmp(currentBucket->bucket_specs[j].spec->spec_id,id) == 0){   //found spec's place in bucket
+        return currentBucket->bucket_specs[j].spec;
+      }
+    }
+    currentBucket = currentBucket->nextBucket;
+  }
+  return NULL;
+}
+
+
+
+
 
 void checkHashTable(struct Entry* hashTable,int numOfEntries,int bucketSize){
   struct Bucket* currentBucket;
@@ -278,7 +311,3 @@ void checkHashTable(struct Entry* hashTable,int numOfEntries,int bucketSize){
     }
   }
 }
-
-
-
-

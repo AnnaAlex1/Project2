@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdbool.h>
 
 #include "ids_list.h"
 
@@ -33,18 +34,36 @@ void addIdInList2(struct AccessCliques* head,struct AccessCliques** accessclique
 
 void addNegInList(struct NegCorrel** list_neg_cor,struct AccessCliques* head){
   struct NegCorrel* new_node;
-
+  
   new_node = malloc(sizeof(struct NegCorrel));
   new_node->aclist = head;
+  new_node->done=false;
 
   if(list_neg_cor == NULL){    //list is empty - add first node
     new_node->next_negcor = NULL;
+    *list_neg_cor = new_node;
   }
   else{   //add node at the beginning of the list
     new_node->next_negcor = *list_neg_cor;
+    *list_neg_cor = new_node;
+    //printf("After: %s\n", (*list_neg_cor)->aclist->clique->id);
   }
-  *list_neg_cor = new_node;
+  
 
+}
+
+
+int in_neglist(struct NegCorrel* list_neg_cor,struct AccessCliques* head){
+
+  while (list_neg_cor != NULL){
+    if (list_neg_cor->aclist == head){
+      return 1; //head of list found in negative correlations list
+    }
+
+    list_neg_cor = list_neg_cor->next_negcor;
+  }
+
+  return 0; //not in list
 }
 
 

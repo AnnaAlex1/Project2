@@ -32,11 +32,12 @@ int num_of_specs=0;
 
 void setSpecsVectors(struct Entry* hashTable,int numOfEntries,int bucketSize,char* argv,float* idf);
 
+
 int main(int argc, char** argv){
 
   //struct Tfidf *tfidf = NULL;
   //double *tfidf_column_sum;
-  
+
 
   if (strcmp(argv[argc-1],"tf-idf") && strcmp(argv[argc-1],"bow")) {
     perror("Wrong parameter");
@@ -46,12 +47,13 @@ int main(int argc, char** argv){
   struct VocabEntry *vocabulary;
   vocabulary = malloc( sizeof(struct VocabEntry) * VOC_ENTRIES);
   initializeVocabHashTable(vocabulary,VOC_ENTRIES ,VOC_BUCK_SIZE);
-
+  printf("Vocab initialised\n");
 
   struct Entry* hashTable;
   hashTable = malloc( sizeof(struct Entry) * NUM_OF_ENTRIES);
 
   initializeHashTable(hashTable, NUM_OF_ENTRIES, BUCKET_SIZE);
+  printf("Hash initialised\n");
 
   FILE* stop_file = fopen("./common-english-words.txt","r");
   if (stop_file==NULL)
@@ -61,9 +63,6 @@ int main(int argc, char** argv){
     }
 
 
-  float* idf;
-  idf = init_idf(num_of_specs,vocabulary, VOC_ENTRIES);
-  
 
 //algorithm:
 
@@ -72,13 +71,28 @@ int main(int argc, char** argv){
 
   printf("Specs added to the hashtable successfully!\n");
 
+  //checkvoc(vocabulary);
+
+  float* idf;
+  //idf = init_idf(num_of_specs,vocabulary, VOC_ENTRIES);
+
+  //printf
+  /*for (int i=0; i<totalVocabularyWords; i++){
+    printf("idf[%d]: %f\n", i, idf[i]);
+  }*/
+  //printf("%d\n",num_of_specs);
+
+  printf("Size of vocabulary: before = %d\n", totalVocabularyWords);
 
   finalVectorsSize = totalVocabularyWords; //initialize with initial vocabulary size
-  
-  setSpecsVectors(hashTable,NUM_OF_ENTRIES,BUCKET_SIZE,argv[argc-1],idf);
-  printf("Vectors for every spec initialized!\n");
-  
 
+  freeVocabulary(vocabulary,VOC_ENTRIES,VOC_BUCK_SIZE);
+  //setSpecsVectors(hashTable,NUM_OF_ENTRIES,BUCKET_SIZE,argv[argc-1],idf);
+
+  printf("Vectors for every spec initialized!\n");
+
+
+  printf("Size of vocabulary: after = %d\n", finalVectorsSize);
 
   //Reading dataset W
 
@@ -88,10 +102,8 @@ int main(int argc, char** argv){
   int wstatus;
 
 
-
   while ((wstatus=readDatasetW_1(datasetw,left_spec_id,right_spec_id))!=EOF)
   {
-
       if (wstatus==ENOENT) return wstatus;
 
       //in merge of matching lists move spec with greater id value
@@ -105,10 +117,13 @@ int main(int argc, char** argv){
 
   }
 
+  char buffer[70];
+  fseek(datasetw, 0, SEEK_SET);
+  fgets(buffer,BSIZE,datasetw);
 
   while ((wstatus=readDatasetW_0(datasetw,left_spec_id,right_spec_id))!=EOF)
   {
-
+      
       if (wstatus==ENOENT) return wstatus;
 
       //in merge of matching lists move spec with greater id value
@@ -123,21 +138,24 @@ int main(int argc, char** argv){
   }
 
 
+  //logistic_regression(0.8);
+
   //checkHashTable(vocabulary, VOC_ENTRIES, VOC_BUCK_SIZE);
 
   fclose(stop_file);
   fclose(datasetw);
   printf("Matching specs is successfully completed!\n");
 
-
   //Results - create output file
-  if ( print_results( aclist ) == 1) {return 1;}
+  if ( print_results_all( aclist ) == 1) {return 1;}
 
   release_Clique(aclist);             //release memory of cliques
   release_aclist(&aclist);           //release memory of list with the beginnings of cliques
 
   freeHashTable(hashTable, NUM_OF_ENTRIES,BUCKET_SIZE);
   free(hashTable);
+
+
 
   return 0;
 
@@ -156,16 +174,48 @@ void setSpecsVectors(struct Entry* hashTable,int numOfEntries,int bucketSize,cha
       for(int j = 0;j < currentBucket->isFull;j++){
         //printf("Entry: %d, Bucket: %d, place in bucket: %d/%d id: %s\n", i, numOfBucket, j, bucketSize, currentBucket->bucket_specs[j].spec->spec_id);
         calculate_tfidf(currentBucket->bucket_specs[j].spec, idf);
-        //clip_tfidf();
         if (strcmp(argv,"bow")==0) {
 
           if ( setVector(currentBucket->bucket_specs[j].spec) == FAIL) return;
           //if ( setVector( currentBucket->bucket_specs[j].spec ) == FAIL) return;
 
-        } 
+        }
       }
       currentBucket = currentBucket->nextBucket;
       numOfBucket++;
     }
   }
+}
+
+
+
+float* get_model_input(char* specid1, char* specid2, struct Entry* hashTable, char* argv){
+
+  struct Spec *spec1, *spec2;
+
+  spec1 = findSpecInHashTable(hashTable, NUM_OF_ENTRIES, BUCKET_SIZE, specid1);
+
+  spec2 = findSpecInHashTable(hashTable, NUM_OF_ENTRIES, BUCKET_SIZE, specid2);
+
+  float *input = malloc(sizeof(float) * finalVectorsSize);
+
+  if (strcmp(argv,"bow")==0){
+
+    for (int i=0; i<finalVectorsSize; i++){
+
+      input[i] = abs(spec1->tfidf[i] - spec2->tfidf[i]);
+
+    }
+
+  } else{
+
+    for (int i=0; i<finalVectorsSize; i++){
+
+      input[i] = abs( (float)spec1->vector[i] - (float)spec2->vector[i]);
+
+    }
+
+  }
+  return input;
+
 }

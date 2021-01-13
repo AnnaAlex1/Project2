@@ -12,15 +12,16 @@
 #include "tfidf.h"
 
 
+
 #define MAXBUF 51000
 
 extern int num_of_specs;
 
-int read_datasetX(int HashtableNumOfEntries, struct Entry* HashTable, int bucketSize, 
+int read_datasetX(int HashtableNumOfEntries, struct Entry* HashTable, int bucketSize,
                   struct VocabEntry* vocabulary, FILE* stop_file){
 
   FILE *spec_file;
-  
+
 
   DIR *maindr, *subdr;
   struct dirent *dsub_dir, *dfiles;
@@ -76,8 +77,8 @@ int read_datasetX(int HashtableNumOfEntries, struct Entry* HashTable, int bucket
                       return 1;
                     }
 
-                                                                            
-                    set_spec(spec, spec_file, dsub_dir->d_name, dfiles->d_name, vocabulary, stop_file); //passing file pointer, name of directory, file name
+
+                    set_spec(spec, spec_file, dsub_dir->d_name, dfiles->d_name, vocabulary, stop_file,HashtableNumOfEntries,bucketSize); //passing file pointer, name of directory, file name
                     //print_spec(*spec);
 
                     num_of_specs++;
@@ -107,7 +108,7 @@ int read_datasetX(int HashtableNumOfEntries, struct Entry* HashTable, int bucket
 
   }
 
-  
+
   free(spec);
   closedir(maindr);
 
@@ -122,34 +123,38 @@ int read_datasetX(int HashtableNumOfEntries, struct Entry* HashTable, int bucket
 
 
 
-void set_spec(struct Spec *spec, FILE *spec_file, char* dir_name, char* file_name, 
-                struct VocabEntry* vocabulary, FILE* stop_file){     //returns a struct of spec from the file given
-  
+void set_spec(struct Spec *spec, FILE *spec_file, char* dir_name, char* file_name,
+                struct VocabEntry* vocabulary, FILE* stop_file,int HashtableNumOfEntries,int bucketSize){     //returns a struct of spec from the file given
+
   spec->spec_id = extract_id( dir_name, file_name );
   spec->num_of_fields = 0;
   spec->fields.category = NULL;
   spec->fields.details = NULL;
-  spec->tfidf = NULL;
+  spec->vector = NULL;
   spec->num_of_words = 0;
 
   //printf("SPECID: %s\n", spec->spec_id);
-  
-  
+
+
   //////////
   char *line = malloc(sizeof(char) * 700);
   char first_part[200];
   char second_part[MAXBUF];
   char word[30];
- 
-  
+
+
   int i,j;
   char prev_ch, ch;
   char help = '\\';
-  bool help_flag = false; //becomes true when 'we want to keep a character we normally wouldn't 
+  bool help_flag = false; //becomes true when 'we want to keep a character we normally wouldn't
   bool changeword = false; //helping flag for handling '\n' in text
   int count_chars = -1; //to count characters (if -1 don't start counting)
-  
-  while ( (ch = fgetc(spec_file)) != EOF){                    
+
+  spec->local_vocab = malloc( sizeof(struct VocabEntry) * LOC_ENTRIES);
+
+  initializeVocabHashTable(spec->local_vocab, LOC_ENTRIES , LOC_BUCKETSIZE);
+
+  while ( (ch = fgetc(spec_file)) != EOF){
       prev_ch = ch;
 
       //skip first characters (until the start of the category)
@@ -162,21 +167,21 @@ void set_spec(struct Spec *spec, FILE *spec_file, char* dir_name, char* file_nam
       i = 0;
       j = 0;
 
-      
-      ch = prev_ch;                       //change value '"' in order to enter the loop 
+
+      ch = prev_ch;                       //change value '"' in order to enter the loop
       while( ( (ch = fgetc(spec_file)) != EOF) && ( (ch != '"') || ( (ch == '"') && (prev_ch == help) ) )  ){  //reading first part (category name)
-          
+
           prev_ch = ch;
           first_part[i] = ch;
-          i++; 
+          i++;
 
           if (ch == help){      //if character == '\' avoid it,but put next one in word
             continue;
           }
 
-          if ( endofword(ch, help_flag) ){     /*end of word*/ 
+          if ( endofword(ch, help_flag) ){     /*end of word*/
             word[j] = '\0';
-            
+
             if ( (strcmp(word, " ") != 0) && (strlen(word)!= 0) ){
 
               procedure(spec, word, vocabulary, stop_file);
@@ -188,11 +193,11 @@ void set_spec(struct Spec *spec, FILE *spec_file, char* dir_name, char* file_nam
           if ( !( (j == 0) && endofword(ch, help_flag)) ){    //if the first character is not a symbol
             word[j] = ch;
             j++;
-          }     
-          
-          
-         
-        
+          }
+
+
+
+
       }
 
       word[j] =   '\0';
@@ -201,14 +206,14 @@ void set_spec(struct Spec *spec, FILE *spec_file, char* dir_name, char* file_nam
         procedure(spec, word, vocabulary, stop_file);
       }
       first_part[i] = '\0';
-      
+
       ///////////////////
 
 
       if ( (ch = fgetc(spec_file)) != ':') {
-        
+
         printf("Error: no ':' after!\n" );
-        
+
         return;
       }
 
@@ -225,23 +230,23 @@ void set_spec(struct Spec *spec, FILE *spec_file, char* dir_name, char* file_nam
       j = 0;
       if ( ch == '['){                          //reading second part (details)
 
-          
+
           while(  ( (ch = fgetc(spec_file)) != EOF) &&  (( ch != ',')  ||  prev_ch != ']')){
-            
+
             //checking characters and setting the needed flags
             set_flags(prev_ch, ch, &help_flag, &changeword);
 
 
-            
+
             //for setting the struct Spec
             prev_ch = ch;
             second_part[i] = ch;
             i++;
 
-                        
+
 
             //case: '\u' found
-            if (ch == 'u' && changeword){   
+            if (ch == 'u' && changeword){
               count_chars = 0;      //start counting
             }
 
@@ -250,11 +255,11 @@ void set_spec(struct Spec *spec, FILE *spec_file, char* dir_name, char* file_nam
             } else if (count_chars != -1){  //case \u
               count_chars++;
               continue;
-            } 
+            }
 
             //case: character '\' found
             if ( ch == help ){   //continue to next interation
-              continue;                    
+              continue;
             }
 
 
@@ -262,8 +267,8 @@ void set_spec(struct Spec *spec, FILE *spec_file, char* dir_name, char* file_nam
             if ( endofword(ch, help_flag) || changeword){     //if it's the end of word
               word[j] = '\0';
               if ( (strcmp(word, " ") != 0) && (strlen(word)!= 0) ){
-                //printf("      word2: %s\n", word); 
-                
+                //printf("      word2: %s\n", word);
+
                 procedure(spec, word, vocabulary, stop_file);
                 j=0;
                 changeword = false;
@@ -279,40 +284,40 @@ void set_spec(struct Spec *spec, FILE *spec_file, char* dir_name, char* file_nam
             if ( !( (j == 0) && endofword(ch, help_flag)) && !changeword && count_chars == -1){    //if the first character is not a symbol
               word[j] = ch;
               j++;
-            } 
-            
-            changeword = false;       
+            }
+
+            changeword = false;
           }
 
           //case: last word of string (last word of details)
           word[j] =   '\0';
           if (strlen(word) != 0){
             //printf("      word2end: %s\n", word);
-            
+
             procedure(spec, word, vocabulary, stop_file);
           }
-        
+
 
 
       } else if (ch == '"'){
 
-          ch = prev_ch;                       //change value '"' in order to enter the loop 
-          while(  ( (ch = fgetc(spec_file)) != EOF) && ( (ch != '"') || ( (ch == '"') && (prev_ch == help) ) )  ){ 
-            
+          ch = prev_ch;                       //change value '"' in order to enter the loop
+          while(  ( (ch = fgetc(spec_file)) != EOF) && ( (ch != '"') || ( (ch == '"') && (prev_ch == help) ) )  ){
+
             //checking characters and setting the needed flags
             set_flags(prev_ch, ch, &help_flag, &changeword);
 
 
-            
+
             //for setting the struct Spec
             prev_ch = ch;
             second_part[i] = ch;
             i++;
 
-                        
+
 
             //case: '\u' found
-            if (ch == 'u' && changeword){   
+            if (ch == 'u' && changeword){
               count_chars = 0;      //start counting
             }
 
@@ -321,11 +326,11 @@ void set_spec(struct Spec *spec, FILE *spec_file, char* dir_name, char* file_nam
             } else if (count_chars != -1){  //case \u
               count_chars++;
               continue;
-            } 
+            }
 
             //case: character '\' found
             if ( ch == help ){   //continue to next interation
-              continue;                    
+              continue;
             }
 
 
@@ -333,7 +338,7 @@ void set_spec(struct Spec *spec, FILE *spec_file, char* dir_name, char* file_nam
             if ( endofword(ch, help_flag) || changeword){     //if it's the end of word
               word[j] = '\0';
               if ( (strcmp(word, " ") != 0) && (strlen(word)!= 0) ){
-                //printf("      word2: %s\n", word); 
+                //printf("      word2: %s\n", word);
 
                 procedure(spec, word, vocabulary, stop_file);
                 j=0;
@@ -350,16 +355,16 @@ void set_spec(struct Spec *spec, FILE *spec_file, char* dir_name, char* file_nam
             if ( !( (j == 0) && endofword(ch, help_flag)) && !changeword && count_chars == -1){    //if the first character is not a symbol
               word[j] = ch;
               j++;
-            } 
-            
-            changeword = false;       
+            }
+
+            changeword = false;
           }
 
           //case: last word of string (last word of details)
           word[j] =   '\0';
           if (strlen(word) != 0){
             //printf("      word2end: %s\n", word);
-            
+
             procedure(spec, word, vocabulary, stop_file);
         }
 
@@ -367,17 +372,19 @@ void set_spec(struct Spec *spec, FILE *spec_file, char* dir_name, char* file_nam
 
       second_part[i] = '\0';
 
-      //put in fields
-      set_pair(spec, first_part, second_part);      //put category and details to the spec
-      
-      spec->num_of_fields++;  
+     //put in fields
+     set_pair(spec, first_part, second_part);      //put category and details to the spec
 
-      
-    
+     spec->num_of_fields++;
+
+
+
   }
-  
-  init_tf(spec, vocabulary, VOC_ENTRIES);
-  
+
+  init_tf(spec, vocabulary);
+  freeVocabulary(spec->local_vocab, LOC_ENTRIES, LOC_BUCKETSIZE);
+  free(spec->local_vocab);
+
   free(line);
 
 
@@ -408,7 +415,7 @@ char * extract_id(char * dir_name, char *file_name){
 
 
 void set_pair(struct Spec *spec, char *first_part, char *second_part){       //set strings in corresponding lists
-  
+
   add_string_end( &(spec->fields.category), first_part);  //add string in list of words for category
   add_string_end( &(spec->fields.details), second_part);  //add string in list of words for details
 
@@ -439,7 +446,10 @@ void print_spec(struct Spec spec){
 
 
 void free_spec(struct Spec* spec){
+
   free(spec->spec_id);
+  free(spec->vector);
+
 
   struct WordList *category, *details, *temp1, *temp2;
 
@@ -479,42 +489,24 @@ int endofword(char current, bool flag){
 
 
 
-void set_flags(char prev_ch, char ch, bool* help_flag, bool* changeword){ //setting helping flags 
+void set_flags(char prev_ch, char ch, bool* help_flag, bool* changeword){ //setting helping flags
 
   char help = '\\';
 
   //don't allow entrance in if(endof...)statement, if previous character == '\', or a number is followed by fullstop
-  if ( ((prev_ch == help) && (ch != 'n' && ch != 'u' ) )|| 
-        (prev_ch >= 48 && prev_ch <= 57 && (ch == '.' || ch == ':'))    ){      
-      
-      *help_flag = true;                      
-  
+  if ( ((prev_ch == help) && (ch != 'n' && ch != 'u' ) )||
+        (prev_ch >= 48 && prev_ch <= 57 && (ch == '.' || ch == ':'))    ){
+
+      *help_flag = true;
+
   } else if ( (prev_ch == help) && (ch == 'n') ){
-     
+
       *changeword = true; //we found change of line
   } else if ( (prev_ch == help) &&  (ch == 'u') ){   //skip next for characters
-    
+
       *changeword = true; //we found '\u'
 
   }
-
-}
-
-
-void add_string_beg(struct WordList** list, char* word ){
-
-    struct WordList *new;
-    new = malloc(sizeof(struct WordList));
-    new->word = malloc(sizeof(char) * (strlen(word)+1) );
-    new->next = NULL;
-
-    if(list == NULL){    //list is empty - add first node
-        *list = new;
-    }
-    else{   //add node at the beginning of the list
-        new->next = *list;
-        *list = new;
-    }
 
 }
 
@@ -539,9 +531,9 @@ void add_string_end(struct WordList** list, char* word ){
     while (temp->next!=NULL){
         temp = temp->next;
     }
-    
+
     temp->next = new;
-    
+
     return;
 
 }
@@ -561,17 +553,15 @@ void procedure(struct Spec* spec, char* word, struct VocabEntry* vocabulary,FILE
   } else if ( res == FALSE){    //if it's not a stopword
 
     spec->num_of_words++;   //increase number of words in spec
-
-    in_local = addWordInVocabulary(word, VOC_ENTRIES, spec->local_vocab, VOC_BUCK_SIZE);  //add word in local vocabulary, while also checking if it's already in
+    in_local = addWordInLocalVocabulary(word, LOC_ENTRIES, spec->local_vocab, LOC_BUCKETSIZE);  //add word in local vocabulary, while also checking if it's already in
 
     if ( in_local == -1 ){ //wasn't found in this spec before
-      
-      addWordInVocabulary(word, VOC_ENTRIES, vocabulary, VOC_BUCK_SIZE);//try to add in voacbulary only if its not already in local vocabulary
 
-    } 
-    
-    
-    
+      addWordInVocabulary(word, VOC_ENTRIES, vocabulary, VOC_BUCK_SIZE);//try to add in voacbulary only if its not already in local vocabulary
+    }
+
+
+
   }
 
 
@@ -579,15 +569,4 @@ void procedure(struct Spec* spec, char* word, struct VocabEntry* vocabulary,FILE
 
 
 
-
-
-
-
-//PROCEDURE:
-
-//if it's punctuation, continue;
-
-//change capitals to lower case   
-//if not a stopword     
-//call functions for vocabulary and private list 
 

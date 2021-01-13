@@ -11,7 +11,6 @@
 
 int createVector(struct Spec* spec, int vsize);
 int setVector(struct Spec* spec);
-void removeWordsFromVector(struct Spec* spec, int* words_rm);
 
 
 #endif

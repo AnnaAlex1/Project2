@@ -311,3 +311,27 @@ void checkHashTable(struct Entry* hashTable,int numOfEntries,int bucketSize){
     }
   }
 }
+
+
+
+
+struct AccessCliques* get_head(struct Entry* hashTable, char *specid){
+
+    struct Bucket* currentBucket;
+    int entryNum; //key
+
+    entryNum = hashFunction(NUM_OF_ENTRIES, specid);
+
+    currentBucket = hashTable[entryNum].bucket;
+    while(currentBucket != NULL){
+        for(int j = 0;j < currentBucket->isFull ;j++){               // search for bucket
+        if( strcmp(currentBucket->bucket_specs[j].spec->spec_id,specid) == 0){   //found spec's place in bucket
+            return currentBucket->bucket_specs[j].head;
+        }
+        }
+        currentBucket = currentBucket->nextBucket;
+    }
+    return NULL;
+
+
+}

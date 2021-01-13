@@ -34,7 +34,7 @@ void addIdInList2(struct AccessCliques* head,struct AccessCliques** accessclique
 
 void addNegInList(struct NegCorrel** list_neg_cor,struct AccessCliques* head){
   struct NegCorrel* new_node;
-  
+
   new_node = malloc(sizeof(struct NegCorrel));
   new_node->aclist = head;
   new_node->done=false;
@@ -48,7 +48,7 @@ void addNegInList(struct NegCorrel** list_neg_cor,struct AccessCliques* head){
     *list_neg_cor = new_node;
     //printf("After: %s\n", (*list_neg_cor)->aclist->clique->id);
   }
-  
+
 
 }
 
@@ -121,6 +121,22 @@ void release_Clique(struct AccessCliques* accesscliques_list){ //release memory 
 
 }
 
+void releaseNegCor(struct AccessCliques* head){
+  struct NegCorrel* temp;
+  struct NegCorrel* to_free;
+
+  temp = head->list_neg_cor;
+
+  while( temp != NULL){
+    to_free = temp;
+    temp = temp->next_negcor;
+    free(to_free);
+  }
+
+}
+
+
+
 
 
 void release_aclist(struct AccessCliques** accesscliques_list){
@@ -132,6 +148,7 @@ void release_aclist(struct AccessCliques** accesscliques_list){
 
     to_free = temp;
     temp = temp->next_id;
+    releaseNegCor(to_free);
     free(to_free);
 
   }

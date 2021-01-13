@@ -8,5 +8,4 @@
 int print_results( struct AccessCliques *start );
 int print_results_all(struct AccessCliques *start);
 
-
 #endif

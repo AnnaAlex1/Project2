@@ -27,15 +27,16 @@ struct VocabEntry{
 
 
 int addWordInVocabulary(char* , int , struct VocabEntry* , int );
-int seachWordInVocabulary(struct VocabEntry*, int, int, char*, int, int );
+int addWordInLocalVocabulary(char* , int , struct VocabEntry* , int );
+int searchWordInVocabulary(struct VocabEntry*, int, int, char*, int);
 int getWordPosition(struct VocabEntry* hashTable, int HashtableNumOfEntries, int bucketSize, char* word);
 void initialiseVocabBucket(struct VocabBucket* ,int );
 void initializeVocabHashTable(struct VocabEntry* ,int ,int );
 void fixVectors(int*);
-//void deleteWordFromVocabulary(char*, int, struct VocabEntry* , int);
+void freeVocabulary(struct VocabEntry* hashTable,int numOfEntries,int bucketSize);
+void checkvoc(struct VocabEntry* vocabulary);
 
 
-int hashFunction1(int HashtableNumOfEntries,int hashNum);
 int hashFunction2(int HashtableNumOfEntries,char* hashName);
 
 

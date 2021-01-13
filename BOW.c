@@ -26,22 +26,11 @@ void initializeVocabHashTable(struct VocabEntry* hashTable,int numOfEntries,int 
   }
 }
 
-
-int hashFunction1(int HashtableNumOfEntries,int hashNum){
-  int entryNum;
-
-  //printf("name: %d\n",hashNum);
-  entryNum = hashNum%HashtableNumOfEntries;
-  return entryNum;
-}
-
-
 int hashFunction2(int HashtableNumOfEntries,char* hashName){
   int entryNum;
   int hashNum;
   char first2Letters[2];
 
-  //printf("name: %s\n",hashName);
   if (strlen(hashName) == 1){
     if (hashName[0] >= '0' && hashName[0] <= '9'){
       hashNum = hashName[0] - '0';
@@ -50,28 +39,12 @@ int hashFunction2(int HashtableNumOfEntries,char* hashName){
     }
     entryNum = hashNum % HashtableNumOfEntries;
     return entryNum;
-  } 
+  }
   memcpy(first2Letters,hashName,2*sizeof(char));             // get the first 2 chars of the word
-  //printf("1st: %c, 2nd: %c\n",first2Letters[0],first2Letters[1]);
-  if((first2Letters[0] >= '0' && first2Letters[0] <= '9') && (first2Letters[1] >= '0' && first2Letters[1] <= '9') ){        // case: 2 first chars = 2 numbers
-    hashNum = first2Letters[0]-'0' + first2Letters[1]-'0';     // get a number according to first letters
-    //printf("2 numbers\n");
-  }
-  else if((first2Letters[0] >= '0' && first2Letters[0] <= '9') && (!(first2Letters[1] >= '0' && first2Letters[1] <= '9'))){        // case: 2 first chars = 1 number , 1 letter
-    hashNum = first2Letters[0]-'0' + first2Letters[1]-'a';     // get a number according to first letters
-    //printf("1 number, 1 letter\n");
-  }
-  else if((!(first2Letters[0] >= '0' && first2Letters[0] <= '9')) && ((first2Letters[1] >= '0' && first2Letters[1] <= '9'))){        // case: 2 first chars = 1 letter , 1 number
-    hashNum = first2Letters[0]-'a' + first2Letters[1]-'0';     // get a number according to first letters
-    //printf("1 letter, 1 number\n");
-  }
-  else{                       // case: 2 first chars = 2 letters
-    hashNum = first2Letters[0]-'a' + first2Letters[1]-'a';     // get a number according to first letters
-    //printf("1: %d , 2: %d\n", first2Letters[0]-'a' , first2Letters[1]-'a');
-    //printf("2 letters\n");
-  }
+  hashNum = (first2Letters[0] + first2Letters[1])*first2Letters[0];
+
+
   entryNum = hashNum % HashtableNumOfEntries;
-  //printf("Word %s and Entrynum: %d\n", hashName, entryNum);
   return entryNum;
 }
 
@@ -94,7 +67,6 @@ int getWordPosition(struct VocabEntry* hashTable, int HashtableNumOfEntries, int
     }
     currentBucket = currentBucket->nextBucket;
   }
-  //printf("Found word: %d\n", found_word);
   return found_word;
 }
 
@@ -103,7 +75,7 @@ int getWordPosition(struct VocabEntry* hashTable, int HashtableNumOfEntries, int
 
 
 
-int seachWordInVocabulary(struct VocabEntry* hashTable, int HashtableNumOfEntries, int bucketSize, char* word,int entryNum, int delete){
+int searchWordInVocabulary(struct VocabEntry* hashTable, int HashtableNumOfEntries, int bucketSize, char* word,int entryNum){
   struct VocabBucket* currentBucket;
   int found_word = -1; //boolean flag
 
@@ -113,28 +85,14 @@ int seachWordInVocabulary(struct VocabEntry* hashTable, int HashtableNumOfEntrie
     for(int j = 0;j < currentBucket->isFull ;j++){               // search for word's bucket
       if(strcmp(currentBucket->words[j].word,word) == 0){   //found word's place in bucket
         found_word = currentBucket->words[j].num; //raise flag
-        /*if(delete == 1){
-          free(currentBucket->words[j].word);
-          currentBucket->words[j].word = NULL;
-          currentBucket->isFull--;
-          totalVocabularyWords--;
-          found_word = currentBucket->words[j].num;
-        }
-        else{
-          currentBucket->words[j].freq++;
-        }*/
         currentBucket->words[j].freq++;
         break;
       }
     }
     currentBucket = currentBucket->nextBucket;
   }
-  //printf("Found word: %d\n", found_word);
   return found_word;
 }
-
-
-
 
 
 
@@ -147,26 +105,76 @@ int addWordInVocabulary(char* word, int HashtableNumOfEntries, struct VocabEntry
   int bucket_place;
   int found_word;
 
-  //printf("HERE\n");
-
   hashName = word;
-//  entryNum = hashFunction1(HashtableNumOfEntries,totalVocabularyWords);                        // find correct entry for new word
   entryNum = hashFunction2(HashtableNumOfEntries,hashName);                        // find correct entry for new word
   length = strlen(hashName) + 1;
 
-  found_word = seachWordInVocabulary(HashTable, HashtableNumOfEntries, bucketSize, word, entryNum,0);   // check if word already exists in vocabulary
+  found_word = searchWordInVocabulary(HashTable, HashtableNumOfEntries, bucketSize, word, entryNum);   // check if word already exists in vocabulary
 
   if(found_word > -1){
     return found_word;
   }
+  if (found_word < -1){
+    return -999;
+  }
 
-  //printf("EntryNum: %d\n", entryNum);
   currentBucket = HashTable[entryNum].bucket;                                     //use entry and point to proper bucket
   while(currentBucket->nextBucket != NULL){                                       //loop chain of buckets
     currentBucket = currentBucket->nextBucket;                                      //find the first free bucket to put the word
   }
+
   if(currentBucket->isFull == bucketSize){                                        //if the first free bucket is full,
-    currentBucket->nextBucket = malloc(sizeof(struct Bucket));                      //next bucket needs to be allocated,
+    currentBucket->nextBucket = malloc(sizeof(struct VocabBucket));                      //next bucket needs to be allocated,
+    currentBucket = currentBucket->nextBucket;                                      //pointed and
+    initialiseVocabBucket(currentBucket,bucketSize);                                //initialised
+    bucket_place = 0;                                                               //hold place of spec in bucket (first spec in bucket => place = 0)
+  }
+  else if(currentBucket->isFull < bucketSize){                                    //next free bucket already allocated
+    bucket_place = currentBucket->isFull;                                           //hold place of spec in bucket
+  }
+
+
+
+  currentBucket->words[bucket_place].word = malloc(length); //allocate memory for word
+  memcpy(currentBucket->words[bucket_place].word, word, length); //copy word
+  currentBucket->words[bucket_place].num = totalVocabularyWords;
+  currentBucket->words[bucket_place].freq = 1;
+  currentBucket->isFull++; //adjust place for incoming word
+  totalVocabularyWords++;
+
+  return found_word;
+
+}
+
+
+int addWordInLocalVocabulary(char* word, int HashtableNumOfEntries, struct VocabEntry* HashTable, int bucketSize){
+  int entryNum; //key
+  int length; //length of spec_id
+  struct VocabBucket* currentBucket;
+  char* hashName; //string given for hashing <- spec_id
+  int bucket_place;
+  int found_word;
+
+  hashName = word;
+  entryNum = hashFunction2(HashtableNumOfEntries,hashName);                        // find correct entry for new word
+  length = strlen(hashName) + 1;
+
+  found_word = searchWordInVocabulary(HashTable, HashtableNumOfEntries, bucketSize, word, entryNum);   // check if word already exists in vocabulary
+
+  if(found_word > -1){
+    return found_word;
+  }
+  if (found_word < -1){
+    return -999;
+  }
+
+  currentBucket = HashTable[entryNum].bucket;                                     //use entry and point to proper bucket
+  while(currentBucket->nextBucket != NULL){                                       //loop chain of buckets
+    currentBucket = currentBucket->nextBucket;                                      //find the first free bucket to put the word
+  }
+
+  if(currentBucket->isFull == bucketSize){                                        //if the first free bucket is full,
+    currentBucket->nextBucket = malloc(sizeof(struct VocabBucket));                      //next bucket needs to be allocated,
     currentBucket = currentBucket->nextBucket;                                      //pointed and
     initialiseVocabBucket(currentBucket,bucketSize);                                //initialised
     bucket_place = 0;                                                               //hold place of spec in bucket (first spec in bucket => place = 0)
@@ -180,26 +188,47 @@ int addWordInVocabulary(char* word, int HashtableNumOfEntries, struct VocabEntry
   currentBucket->words[bucket_place].num = totalVocabularyWords;
   currentBucket->words[bucket_place].freq = 1;
   currentBucket->isFull++; //adjust place for incoming word
-  totalVocabularyWords++;
   return found_word;
-  //printf("Word: %s\n", currentBucket->words[bucket_place].word);
 }
 
+
+
+void freeVocabulary(struct VocabEntry* hashTable,int numOfEntries,int bucketSize){
+  struct VocabBucket* currentBucket;
+  struct VocabBucket* nextTempBucket;
+
+  for(int i = 0;i < numOfEntries;i++){                //for every entry in thehashtable
+    currentBucket = hashTable[i].bucket;
+    while(currentBucket != NULL){
+      nextTempBucket = currentBucket->nextBucket;                               //remove data from bucket_specs
+      for(int j = 0;j < currentBucket->isFull; j++){
+        free(currentBucket->words[j].word);
+      }
+      free(currentBucket->words);
+      free(currentBucket);
+      currentBucket = nextTempBucket;
+    }
+    currentBucket = hashTable[i].bucket;
+  }
+}
 
 /*
-void deleteWordFromVocabulary(char* word, int HashtableNumOfEntries, struct VocabEntry* HashTable, int bucketSize){
-  int numOfWord;
-  struct VocabBucket* currentBucket;
-  struct RareWord* newRareWord;
 
-  //numOfWord = seachWordInVocabulary(HashTable, HashtableNumOfEntries, bucketSize, word, entryNum,1);   // find word in vocabulary
-  if(numOfWord == -1){
-    printf("Can't find word %s in vocabulary\n",word);
-    return;
+void checkvoc(struct VocabEntry* vocabulary){
+  struct VocabBucket* currentBucket;
+  int count=0;
+  int numOfBucket;
+  for(int i = 0;i < VOC_ENTRIES;i++){
+    numOfBucket = 1;
+    currentBucket = vocabulary[i].bucket;
+    while(currentBucket != NULL){
+      for(int j = 0;j < currentBucket->isFull;j++){
+        printf("Entry: %d, Bucket: %d, place in bucket: %d/%d word: %s, pos: %d, freq: %d\n", i, numOfBucket, j, VOC_BUCK_SIZE, currentBucket->words[j].word, currentBucket->words[j].num, currentBucket->words[j].freq);
+        count++;
+      }
+      currentBucket = currentBucket->nextBucket;
+      numOfBucket++;
+    }
   }
-  newRareWord = malloc(sizeof(struct RareWord));
-  newRareWord->delNum = numOfWord;
-  newRareWord->nextWord = rareWordsList;
-  rareWordsList = newRareWord;
-}
-*/
+  printf("----------------------------count: %d\n", count);
+}*/

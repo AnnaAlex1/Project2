@@ -4,6 +4,10 @@
 #include "readX.h"
 #include "ids_list.h"
 
+
+#define NUM_OF_ENTRIES 300
+#define BUCKET_SIZE 1000
+
 //type of bucket's content
 struct BucketSpec{
   struct Spec* spec;  //pointer to a spec
@@ -32,6 +36,7 @@ void searchDifferent(struct Entry* hashTable, int HashtableNumOfEntries, int buc
 void fixing_pointers(struct Clique*, struct AccessCliques*);  // when merging 2 lists: make all pointers of origin list point to destination list
 void freeHashTable(struct Entry* hashTable,int numOfEntries,int bucketSize);
 struct Spec* findSpecInHashTable(struct Entry* hashTable, int HashtableNumOfEntries, int bucketSize, char* id);
+struct AccessCliques* get_head(struct Entry* hashTable, char *specid);
 
 void checkHashTable(struct Entry* hashTable,int numOfEntries,int bucketSize);
 
